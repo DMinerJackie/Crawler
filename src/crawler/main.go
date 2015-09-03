@@ -17,7 +17,7 @@ var visited = make(map[string]bool)
 var visitsDone = 0
 var visitsOpen = 0
 var mutex = &sync.RWMutex{}
-var throttle = time.Tick(30 * time.Millisecond)
+var throttle = time.Tick(1000 * time.Millisecond)
 
 /*
 	Start
@@ -86,7 +86,7 @@ func main() {
 
 	// Queue that spawns Goroutines for every URL in the queue
 	for uri := range queue {
-		if runtime.NumGoroutine() < 10000 {
+		if runtime.NumGoroutine() < 150 {
 			wg.Add(1)
 			go func() {
 				<-throttle
