@@ -9,9 +9,9 @@ import (
 	"time"
 )
 
-var workers = 4
-var input = make(chan string)
-var output = make(chan string)
+var workers = 10
+var input = make(chan string, 100000)
+var output = make(chan string, 100000)
 var visited = make(map[string]bool)
 
 /*
@@ -19,6 +19,7 @@ var visited = make(map[string]bool)
 */
 
 func main() {
+	//visited[`https://www.roller.de/mhs-order-status`] = true
 
 	start := time.Now()
 
@@ -33,6 +34,7 @@ func main() {
 	// Create the number of workers
 	for i := 0; i < workers; i++ {
 		//fmt.Printf("Worker created: %d \n", i)
+		//wg.Add(1)
 		go worker(i, startHost, &wg, input, output)
 	}
 
@@ -54,6 +56,7 @@ func main() {
 		//close(input)
 		elapsed := time.Since(start)
 		fmt.Printf("\n%d links in %f seconds\n", len(visited), elapsed.Seconds())
+		//os.Exit(0)
 		//ExportToCSV(startHost, visited)
 		//fmt.Printf("\nCSV file created for %s\n", startHost)
 	}()
