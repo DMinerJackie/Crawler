@@ -2,13 +2,15 @@ package main
 
 import (
 	//"bufio"
-	"crypto/tls"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"net/url"
+	"os"
 	"runtime"
+	"runtime/pprof"
 	"sync"
 	"time"
 )
@@ -17,16 +19,35 @@ var visited = make(map[string]bool)
 var visitsDone = 0
 var visitsOpen = 0
 var mutex = &sync.RWMutex{}
-var throttle = time.Tick(1000 * time.Millisecond)
+var throttle = time.Tick(1 * time.Millisecond)
+var counter = 0
+
+var useCpuProfile = true
+var useRamProfile = false
+var useThrottle = false
 
 /*
 	Start
 */
 
 func main() {
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
+	// CPU Profiler unter go tool pprof cpu.prof
+	if useCpuProfile {
+		f, err := os.Create("cpu.prof")
+		if err != nil {
+			panic(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+
+	}
+
+	// Memory Profiler unter http://localhost:6060/debug/pprof/
+	if useRamProfile {
+		go func() {
+			log.Println(http.ListenAndServe("localhost:6060", nil))
+		}()
+	}
 
 	start := time.Now()
 	/*
@@ -43,21 +64,8 @@ func main() {
 		  }                                           // Note that 'main' doesn't return anything.
 	*/
 
-	/*
-				Creates HTTP Client that skips SSL connections
-
-				Timeout specifies a time limit for requests made by this Client
-				The timeout includes connection time, any redirects, and reading the response body.
-				The timer remains running after Get, Head, Post, or Do return and will interrupt
-				reading of the Response.Body.
-		    	A Timeout of zero means no timeout.
-	*/
+	transport := &http.Transport{}
 	timeout := time.Duration(5 * time.Second)
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: false,
-		},
-	}
 	client := http.Client{
 		Transport: transport,
 		Timeout:   timeout,
@@ -71,7 +79,7 @@ func main() {
 	/*
 		URL that gets fetched first
 	*/
-	startPage := "http://golem.de"
+	startPage := "http://www.example.de/"
 	startUrl, _ := url.Parse(startPage)
 	startHost := startUrl.Host
 	fmt.Printf("Crawling %s @ Host %s \n", startUrl, startHost)
@@ -86,7 +94,7 @@ func main() {
 
 	// Queue that spawns Goroutines for every URL in the queue
 	for uri := range queue {
-		if runtime.NumGoroutine() < 150 {
+		if runtime.NumGoroutine() < 30 {
 			wg.Add(1)
 			go func() {
 				<-throttle
@@ -94,12 +102,11 @@ func main() {
 				return
 			}()
 		}
-
 	}
 
 	// write fetched URLs to CSV file
 	ExportToCSV(startHost, visited)
-	fmt.Println("\n CSV file created")
+	fmt.Printf("\nCSV file created for %s\n", startHost)
 
 	elapsed := time.Since(start)
 	fmt.Printf("\n%d links in %f seconds\n", len(visited), elapsed.Seconds())

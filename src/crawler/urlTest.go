@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-var badChars = []string{"@", ";"}
+var badChars = []string{"#", "@", ";"}
 var badFileEndings = []string{".gif", ".jpg", ".jpeg", ".js", ".png", ".pdf", ".swf"}
 
 /*
@@ -57,7 +57,7 @@ func CheckUrl(uri *string) bool {
 /*
 	checks if the found URL and the start URL have the same domain = link to the same page = don't leave the start page (startPage)
 */
-func CheckTLD(uri, startHost *string) bool {
+func CheckHost(uri, startHost *string) bool {
 	uriUrl, err := url.Parse(*uri)
 	if err != nil {
 		fmt.Println(err)

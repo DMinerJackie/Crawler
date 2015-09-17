@@ -4,12 +4,10 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
-	"net/url"
+	//"net/url"
 )
 
-func ExportToCSV(startPage string, visited map[string]bool) {
-	startUrl, _ := url.Parse(startPage)
-	startHost := startUrl.Host
+func ExportToCSV(startHost string, visited map[string]bool) {
 	csvfile, err := os.Create(startHost + ".csv")
 	if err != nil {
 		fmt.Println("Error:", err)
