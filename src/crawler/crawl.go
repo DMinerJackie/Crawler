@@ -1,54 +1,39 @@
 package main
 
 import (
-	//"encoding/json"
 	"fmt"
 	"net/http"
-	//"runtime"
 	"sync"
+	"time"
 )
 
-var absoluteCounter = 0
-
-/*
-	Crawler
-*/
-func Crawl(uri string, startHost string, queue chan<- string, client *http.Client, mutex *sync.RWMutex, wg *sync.WaitGroup) {
+func Crawl(link string, startHost string, wg *sync.WaitGroup, input, output chan string) {
 	defer wg.Done()
-	mutex.Lock()
-	if visited[uri] == false {
-		visited[uri] = true
-		//fmt.Printf("Unique: %-15d Goroutines %-5d \n", len(visited), runtime.NumGoroutine())
-		mutex.Unlock()
+	//fmt.Println("For Site: " + link)
+	//fmt.Printf("Unique: %-15d Goroutines %-5d \n", len(visited), runtime.NumGoroutine())
 
-		resp, err := client.Get(uri)
-		// if uri can't be resolved
-		if err != nil {
-			fmt.Println("URI    ERROR: ", err)
-			return
-		}
-
-		defer resp.Body.Close()
-
-		links := collectLinks(resp.Body)
-
-		// check found Links for bad URLs, email adresses, Javascript, same Domain etc
-		// if Link check doesn't fail it gets added to the queue
-		for _, link := range links {
-			absoluteUrl := FixUrl(&link, &uri)
-			if CheckHost(&absoluteUrl, &startHost) && CheckUrl(&absoluteUrl) {
-				mutex.Lock()
-				if visited[absoluteUrl] == false {
-					fmt.Println("AbsoluteURL: " + absoluteUrl)
-					queue <- absoluteUrl
-				}
-				mutex.Unlock()
-			}
-		}
-	} else {
-		//fmt.Println("DOUBLE: " + uri)
-		mutex.Unlock()
+	transport := &http.Transport{}
+	timeout := time.Duration(5 * time.Second)
+	client := http.Client{
+		Transport: transport,
+		Timeout:   timeout,
+	}
+	resp, err := client.Get(link)
+	if err != nil {
+		fmt.Println("LINK ERROR: ", err)
 		return
+	}
+
+	defer resp.Body.Close()
+
+	links := collectLinks(resp.Body)
+
+	for _, foundLink := range links {
+		absoluteUrl := FixUrl(&foundLink, &link)
+		if CheckHost(&absoluteUrl, &startHost) && CheckUrl(&absoluteUrl) {
+			fmt.Printf("TOTAL: %-3d FROM: %-20s INPUT: %-20s \n", len(links), link, absoluteUrl)
+			output <- absoluteUrl
+		}
 	}
 	return
 }
