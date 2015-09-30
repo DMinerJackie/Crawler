@@ -1,13 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"net/url"
 	"strings"
 )
 
 var badChars = []string{"#", "@", ";"}
-var badFileEndings = []string{".gif", ".jpg", ".jpeg", ".js", ".png", ".pdf", ".swf"}
+var badFileEndings = []string{".gif", ".jpg", ".jpeg", ".svg", ".js", ".png", ".pdf", ".swf"}
 
 /*
 	Parses String to URL and parses them to absolute URLs if necessary
@@ -15,16 +14,15 @@ var badFileEndings = []string{".gif", ".jpg", ".jpeg", ".js", ".png", ".pdf", ".
 func FixUrl(href, base *string) string {
 	uri, err := url.Parse(*href)
 	if err != nil {
-		//fmt.Printf("PARSE ERROR: \n", err)
+		Error.Printf("  FixUrl() - Parsing Url failed: \n", err)
 		return ""
 	}
 	baseUrl, err := url.Parse(*base)
 	if err != nil {
-		//fmt.Printf("BaseURL ERROR: \n", err)
+		Error.Printf("  BaseURL ERROR: %s \n", err)
 		return ""
 	}
 	uri = baseUrl.ResolveReference(uri)
-	//fmt.Println("FIXED URL: ", uri)
 	return uri.String()
 }
 
@@ -34,19 +32,13 @@ func FixUrl(href, base *string) string {
 func CheckUrl(uri *string) bool {
 	for _, str := range badChars {
 		if strings.Contains(*uri, str) {
-			//fmt.Printf("BADCHAR: %-80s  ERR: %-80s \n", *uri, str)
+			Debug.Printf("  Bad Char %s for %s", str, *uri)
 			return false
 		}
 	}
 	for _, str := range badFileEndings {
 		if strings.HasSuffix(*uri, str) {
-			return false
-		}
-	}
-
-	for u := range badFileEndings {
-		str := string(u)
-		if strings.HasSuffix(*uri, str) {
+			Debug.Printf("  Bad File Ending %s for %s",str,  *uri)
 			return false
 		}
 	}
@@ -60,13 +52,14 @@ func CheckUrl(uri *string) bool {
 func CheckHost(uri, startHost *string) bool {
 	uriUrl, err := url.Parse(*uri)
 	if err != nil {
-		fmt.Println(err)
+		Error.Printf("  CheckHost() - Url parsing failed: %s", err)
+		return false
 	}
 	//fmt.Printf("Site Host: %s ## START HOST: %s \n", uriUrl.Host, *startHost)
 	if uriUrl.Host == *startHost {
 		return true
 	} else {
-		//fmt.Printf("WRONG HOST: %-30s INSTEAD OF %-30s \n", uriUrl.Host, *startHost)
+		Debug.Printf("  Wrong Host: %s for %s \n", uriUrl.Host, uriUrl)
 		return false
 	}
 
