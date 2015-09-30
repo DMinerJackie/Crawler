@@ -75,18 +75,6 @@ func main() {
 		}
 	}()
 
-	//	go func() {
-	//		for {
-	//			if len(input) == 0 && len(output) == 0 {
-	//				close(input)
-	//				close(output)
-	//				elapsed := time.Since(start)
-	//
-	//				os.Exit(0)
-	//			}
-	//		}
-	//	}()
-
 	go func() {
 		wg.Wait()
 		fmt.Println("CLOSED")
@@ -107,8 +95,8 @@ func worker(i int, startHost string, wg *sync.WaitGroup, input, output chan stri
 	for {
 		select {
 		case link := <-input:
-		wg.Add(1)
-			<-throttle	
+			wg.Add(1)
+			<-throttle
 			Crawl(link, startHost, wg, input, output)
 		}
 	}
