@@ -62,10 +62,10 @@ func setLogLevel(logLevel int32, fileHandle io.Writer) {
 		}
 	}
 
-	Debug = log.New(debugHandle, "DEBUG: ", log.Ltime)
-	Info = log.New(infoHandle, "INFO: ", log.Ltime)
-	Warning = log.New(warnHandle, "WARNING: ", log.Ltime)
-	Error = log.New(errorHandle, "ERROR: ", log.Ltime)
+	Debug = log.New(debugHandle, "DEBUG: ", log.Ldate|log.Ltime|log.Lshortfile)
+	Info = log.New(infoHandle, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+	Warning = log.New(warnHandle, "WARNING: ", log.Ldate|log.Ltime)
+	Error = log.New(errorHandle, "ERROR: ", log.Ldate|log.Ltime)
 
 	atomic.StoreInt32(&logLevel, logLevel)
 }
