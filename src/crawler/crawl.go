@@ -8,7 +8,7 @@ import (
 )
 
 func Crawl(link string, startHost string, mutex *sync.Mutex) {
-	defer wg.Done()
+	defer wg1.Done()
 	Debug.Printf("Begin crawl: %s \n", link)
 
 	transport := &http.Transport{}
@@ -36,7 +36,7 @@ func Crawl(link string, startHost string, mutex *sync.Mutex) {
 	links := collectLinks(resp.Body)
 	Debug.Printf("  Found %d links on %s \n", len(links), link)
 
-	for i , foundLink := range links {
+	for i, foundLink := range links {
 		Debug.Printf("  # Begin range %d for %s \n", i, foundLink)
 		absoluteUrl := FixUrl(&foundLink, &link)
 		Debug.Printf("  + FixUrl %d is: %s \n", i, absoluteUrl)
@@ -55,23 +55,22 @@ func Crawl(link string, startHost string, mutex *sync.Mutex) {
 					counter++
 					mutex.Unlock()
 
-//					if counter%1000 == 0 {
-//						//Info.Printf("Crawled: %-5d", counter)
-//					}
+					//					if counter%1000 == 0 {
+					//						//Info.Printf("Crawled: %-5d", counter)
+					//					}
+					wg2.Add(1)
 					new_links_chan <- absoluteUrl
 					Debug.Printf("added to channel: %s \n", absoluteUrl)
-					//output <- absoluteUrl
 				} else {
 					Debug.Printf("DUPLICATE VISIT: %s \n", absoluteUrl)
 					mutex.Unlock()
-					
 				}
 			} else {
 				Debug.Printf("  - CheckUrl not passed: %s \n", absoluteUrl)
 			}
 		} else {
 			Debug.Printf("  - AbsoluteUrl not passed: %s \n", absoluteUrl)
-			
+
 		}
 
 	}
