@@ -3,12 +3,12 @@ package main
 import (
 	"bufio"
 	"flag"
+	"log"
 	"net/url"
 	"os"
+	"runtime/pprof"
 	"sync"
 	"time"
-	"log"
-	"runtime/pprof"
 )
 
 var new_links_chan = make(chan string, 1000000)
@@ -17,7 +17,8 @@ var counter = 0
 var errcounter = 0
 var throttle = time.Tick(100 * time.Millisecond)
 var mutex = &sync.Mutex{}
-var wg = &sync.WaitGroup{}
+var wg1 = &sync.WaitGroup{}
+var wg2 = &sync.WaitGroup{}
 
 /*
 	Start
@@ -28,9 +29,9 @@ func main() {
 
 	// console parameter
 	linkPtr := flag.String("url", "example.de/", "site")
-	numbWorkerPtr := flag.Int("con", 1, "connections")
-	logLevelPtr := flag.Int("log", 2, "0-4")
-	cpuprofilePtr := flag.String("cpu", "crawler", "write cpu profile to file")
+	numbWorkerPtr := flag.Int("con", 30, "connections")
+	logLevelPtr := flag.Int("log", 1, "0-4")
+	cpuprofilePtr := flag.String("cpu", "profile", "write cpu profile to file")
 
 	flag.Parse()
 
@@ -40,13 +41,13 @@ func main() {
 	cpuprofile := *cpuprofilePtr
 
 	if cpuprofile != "" {
-        f, err := os.Create(cpuprofile)
-        if err != nil {
-            log.Fatal(err)
-        }
-        pprof.StartCPUProfile(f)
-        defer pprof.StopCPUProfile()
-    }
+		f, err := os.Create(cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 
 	// LOGGING
 	file, err := os.OpenFile("logfile.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
@@ -56,7 +57,6 @@ func main() {
 	defer file.Close()
 
 	// Waitgroup to know when all Goroutines are closed
-	
 
 	startPage := "http://www." + link
 	startUrl, _ := url.Parse(startPage)
@@ -65,12 +65,11 @@ func main() {
 	setLogLevel(logLevel, file)
 	Info.Printf("Start: %s : %d workers : loglevel %d", startHost, workers, logLevel)
 
-	//wg.Add(1)
 	Debug.Printf("added to chan: %s \n", startPage)
 	Info.Printf("Counter: %-3d @ %s \n", counter, startUrl)
 	counter++
+	wg2.Add(1)
 	new_links_chan <- startPage
-	
 
 	// Create the number of workers
 	for i := 1; i <= workers; i++ {
@@ -78,12 +77,11 @@ func main() {
 		Debug.Printf("worker %d created", i)
 	}
 
-
-
 	go func() {
-		wg.Wait()
-		Info.Println("CLOSED")
+		wg1.Wait()
+		wg2.Wait()
 		close(new_links_chan)
+		Info.Println("CLOSED")
 		elapsed := time.Since(start)
 		Info.Printf("Stop: %d visited: %d failed: %f seconds", counter, errcounter, elapsed.Seconds())
 		os.Exit(0)
@@ -101,8 +99,9 @@ func worker(startHost string, mutex *sync.Mutex) {
 		case link := <-new_links_chan:
 			<-throttle
 			Debug.Printf("consumed from chan: %s \n", link)
-			wg.Add(1)
+			wg1.Add(1)
 			Crawl(link, startHost, mutex)
+			wg2.Done()
 		}
 	}
 }
