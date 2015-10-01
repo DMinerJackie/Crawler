@@ -4,11 +4,10 @@ import (
 	"net/http"
 	"sync"
 	"time"
-	//"fmt"
 )
 
 func Crawl(link string, startHost string, mutex *sync.Mutex) {
-	defer wg1.Done()
+	defer MutexDone()
 	Debug.Printf("Begin crawl: %s \n", link)
 
 	transport := &http.Transport{}
@@ -17,14 +16,7 @@ func Crawl(link string, startHost string, mutex *sync.Mutex) {
 		Transport: transport,
 		Timeout:   timeout,
 	}
-	//	resp, err := client.head(link)
-	//	if err != nil {
-	//		fmt.printf("head error: %s %s \n", err, link)
-	//		return
-	//	}
-
-	//	if strings.hasprefix(strings.tolower(resp.header.get("content-type")), "text/plain") {
-
+	
 	resp, err := client.Get(link)
 	if err != nil {
 		errcounter++
@@ -51,14 +43,8 @@ func Crawl(link string, startHost string, mutex *sync.Mutex) {
 					Debug.Printf("SET %s to TRUE \n", absoluteUrl)
 					visited[absoluteUrl] = true
 					Info.Printf("Counter: %-3d @ %s \n", counter, absoluteUrl)
-					//fmt.Println(absoluteUrl)
 					counter++
 					mutex.Unlock()
-
-					//					if counter%1000 == 0 {
-					//						//Info.Printf("Crawled: %-5d", counter)
-					//					}
-					wg2.Add(1)
 					new_links_chan <- absoluteUrl
 					Debug.Printf("added to channel: %s \n", absoluteUrl)
 				} else {
