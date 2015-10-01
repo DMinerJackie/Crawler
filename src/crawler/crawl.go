@@ -7,7 +7,7 @@ import (
 )
 
 func Crawl(link string, startHost string, mutex *sync.Mutex) {
-	defer MutexDone()
+	defer MutexDone1()
 	Debug.Printf("Begin crawl: %s \n", link)
 
 	transport := &http.Transport{}
@@ -16,10 +16,10 @@ func Crawl(link string, startHost string, mutex *sync.Mutex) {
 		Transport: transport,
 		Timeout:   timeout,
 	}
-	
+
 	resp, err := client.Get(link)
 	if err != nil {
-		errcounter++
+		MutexErrorAdd()
 		Error.Printf("  Connection Error for %s : %s \n", link, err)
 		return
 	}
@@ -29,24 +29,20 @@ func Crawl(link string, startHost string, mutex *sync.Mutex) {
 	Debug.Printf("  Found %d links on %s \n", len(links), link)
 
 	for i, foundLink := range links {
-		Debug.Printf("  # Begin range %d for %s \n", i, foundLink)
 		absoluteUrl := FixUrl(&foundLink, &link)
-		Debug.Printf("  + FixUrl %d is: %s \n", i, absoluteUrl)
 		if absoluteUrl != "" {
-			Debug.Printf("  + AbsoluteUrl %d is : %s \n", i, absoluteUrl)
 			if CheckUrl(&absoluteUrl) && CheckHost(&absoluteUrl, &startHost) {
-				Debug.Printf("  + CheckUrl %d is okay: %s \n", i, absoluteUrl)
 				Debug.Printf("     *** Tests for item %d passed: %s \n", i, absoluteUrl)
 				mutex.Lock()
-				Debug.Printf("STATUS visit:%t for %s \n", visited[absoluteUrl], absoluteUrl)
 				if visited[absoluteUrl] == false {
 					Debug.Printf("SET %s to TRUE \n", absoluteUrl)
 					visited[absoluteUrl] = true
 					Info.Printf("Counter: %-3d @ %s \n", counter, absoluteUrl)
 					counter++
 					mutex.Unlock()
-					new_links_chan <- absoluteUrl
 					Debug.Printf("added to channel: %s \n", absoluteUrl)
+					MutexAdd2()
+					new_links_chan <- absoluteUrl
 				} else {
 					Debug.Printf("DUPLICATE VISIT: %s \n", absoluteUrl)
 					mutex.Unlock()
@@ -60,7 +56,4 @@ func Crawl(link string, startHost string, mutex *sync.Mutex) {
 		}
 
 	}
-	//	} else {
-	//		return
-	//	}
 }
