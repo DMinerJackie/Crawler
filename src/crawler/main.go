@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	//"bufio"
 	"flag"
 	"log"
 	"net/url"
@@ -90,7 +90,7 @@ func main() {
 	}()
 
 	//keep console open
-	bufio.NewReader(os.Stdin).ReadBytes('\n')
+	//bufio.NewReader(os.Stdin).ReadBytes('\n')
 }
 
 func worker(startHost string, mutex *sync.Mutex) {
