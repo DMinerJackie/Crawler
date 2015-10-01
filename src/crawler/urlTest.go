@@ -14,11 +14,13 @@ var badFileEndings = []string{".gif", ".jpg", ".jpeg", ".svg", ".js", ".png", ".
 func FixUrl(href, base *string) string {
 	uri, err := url.Parse(*href)
 	if err != nil {
+		MutexErrorAdd()
 		Error.Printf("  FixUrl() - Parsing Url failed: \n", err)
 		return ""
 	}
 	baseUrl, err := url.Parse(*base)
 	if err != nil {
+		MutexErrorAdd()
 		Error.Printf("  BaseURL ERROR: %s \n", err)
 		return ""
 	}
@@ -38,7 +40,7 @@ func CheckUrl(uri *string) bool {
 	}
 	for _, str := range badFileEndings {
 		if strings.HasSuffix(*uri, str) {
-			Debug.Printf("  Bad File Ending %s for %s",str,  *uri)
+			Debug.Printf("  Bad File Ending %s for %s", str, *uri)
 			return false
 		}
 	}
@@ -52,6 +54,7 @@ func CheckUrl(uri *string) bool {
 func CheckHost(uri, startHost *string) bool {
 	uriUrl, err := url.Parse(*uri)
 	if err != nil {
+		MutexErrorAdd()
 		Error.Printf("  CheckHost() - Url parsing failed: %s", err)
 		return false
 	}
@@ -59,7 +62,7 @@ func CheckHost(uri, startHost *string) bool {
 	if uriUrl.Host == *startHost {
 		return true
 	} else {
-		Debug.Printf("  Wrong Host: %s for %s \n", uriUrl.Host, uriUrl)
+		Debug.Printf("  Bad Host: %s for %s \n", uriUrl.Host, uriUrl)
 		return false
 	}
 
