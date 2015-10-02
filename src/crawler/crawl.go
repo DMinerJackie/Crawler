@@ -3,49 +3,42 @@ package main
 import (
 	"net/http"
 	"sync"
-	"time"
 )
 
 func Crawl(link string, startHost string, mutex *sync.Mutex) {
-	defer MutexDone1()
+	defer DoneCountA()
 	Debug.Printf("Begin crawl: %s \n", link)
 
-	transport := &http.Transport{}
-	timeout := time.Duration(5 * time.Second)
-	client := http.Client{
-		Transport: transport,
-		Timeout:   timeout,
-	}
+	client := http.Client{}
 
 	resp, err := client.Get(link)
 	if err != nil {
-		MutexErrorAdd()
+		AddErrCount()
 		Error.Printf("  Connection Error for %s : %s \n", link, err)
 		return
 	}
 	defer resp.Body.Close()
 
-	links := collectLinks(resp.Body)
+	links := collectLinks(&link, resp.Body)
 	Debug.Printf("  Found %d links on %s \n", len(links), link)
 
-	for i, foundLink := range links {
+	for _, foundLink := range links {
 		absoluteUrl := FixUrl(&foundLink, &link)
 		if absoluteUrl != "" {
 			if CheckUrl(&absoluteUrl) && CheckHost(&absoluteUrl, &startHost) {
-				Debug.Printf("     *** Tests for item %d passed: %s \n", i, absoluteUrl)
+				Debug.Printf("     *** Tests passed: %s \n", absoluteUrl)
 				mutex.Lock()
 				if visited[absoluteUrl] == false {
-					Debug.Printf("SET %s to TRUE \n", absoluteUrl)
 					visited[absoluteUrl] = true
-					Info.Printf("Counter: %-3d @ %s \n", counter, absoluteUrl)
-					counter++
+					AddLinkCount()
+					Info.Printf(" Counter: %d @ %s \n", GetLinkCount(), absoluteUrl)
 					mutex.Unlock()
 					Debug.Printf("added to channel: %s \n", absoluteUrl)
-					MutexAdd2()
+					AddCountB()
 					new_links_chan <- absoluteUrl
 				} else {
-					Debug.Printf("DUPLICATE VISIT: %s \n", absoluteUrl)
 					mutex.Unlock()
+					Debug.Printf("DUPLICATE VISIT: %s \n", absoluteUrl)
 				}
 			} else {
 				Debug.Printf("  - CheckUrl not passed: %s \n", absoluteUrl)
