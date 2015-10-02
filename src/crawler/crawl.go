@@ -30,7 +30,7 @@ func Crawl(link string, startHost string) {
 	/*
 		BUGGY FOR WHATEVER FUCKING REASON
 	*/
-	if multithread == true {
+	if multithreaded == true {
 		AddCountB(len(links))
 		for i, _ := range links {
 			go test(link, startHost, links[i])
