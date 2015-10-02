@@ -82,8 +82,7 @@ func main() {
 		CREATE WORKER
 	*/
 	for i := 1; i <= workers; i++ {
-		go worker(startHost, mutex)
-		//Debug.Printf("worker %d created", i)
+		go worker(startHost)
 	}
 
 	/*
@@ -103,7 +102,7 @@ func main() {
 /*
 	WORKER FUNCTION
 */
-func worker(startHost string, mutex *sync.Mutex) {
+func worker(startHost string) {
 	for {
 		select {
 		case link := <-new_links_chan:
