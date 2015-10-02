@@ -13,12 +13,13 @@ import (
 
    It does not close the reader passed to it.
 */
-func collectLinks(httpBody io.Reader) []string {
+func collectLinks(link *string, httpBody io.Reader) []string {
 	links := make([]string, 0)
 	page := html.NewTokenizer(httpBody)
 	for {
 		tokenType := page.Next()
 		if tokenType == html.ErrorToken {
+			Warning.Printf("HTML Tokenizer failed on %s : %s", *link, tokenType)
 			return links
 		}
 		token := page.Token()
@@ -30,4 +31,5 @@ func collectLinks(httpBody io.Reader) []string {
 			}
 		}
 	}
+	return links
 }
