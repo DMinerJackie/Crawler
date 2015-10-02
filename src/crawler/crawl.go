@@ -24,6 +24,7 @@ func Crawl(link string, startHost string, mutex *sync.Mutex) {
 
 	for _, foundLink := range links {
 		absoluteUrl := FixUrl(&foundLink, &link)
+		Debug.Println(absoluteUrl)
 		if absoluteUrl != "" {
 			if CheckUrl(&absoluteUrl) && CheckHost(&absoluteUrl, &startHost) {
 				Debug.Printf("     *** Tests passed: %s \n", absoluteUrl)
