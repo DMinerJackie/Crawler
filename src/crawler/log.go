@@ -19,19 +19,22 @@ var (
 // turnOnLogging configures the logging writers.
 func setLogLevel(logLevel int32, fileHandle io.Writer) {
 	everHandle := ioutil.Discard
+	everHandle = os.Stdout
 	infoHandle := ioutil.Discard
 	warnHandle := ioutil.Discard
 	errorHandle := ioutil.Discard
 	debugHandle := ioutil.Discard
-	everHandle = os.Stdout
+	
 
 	if logLevel == 1 {
 		infoHandle = os.Stdout
+		errorHandle = os.Stderr
 	}
 
 	if logLevel == 2 {
 		infoHandle = os.Stdout
 		warnHandle = os.Stdout
+		errorHandle = os.Stderr
 	}
 
 	if logLevel == 3 {
