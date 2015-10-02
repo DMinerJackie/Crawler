@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime/pprof"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -16,41 +17,39 @@ import (
 */
 var new_links_chan = make(chan string, 1000000)
 var visited = make(map[string]bool)
-var counter = 0
-var mutexErrorCounter = 0
-var mutexCounter1 = 0
-var mutexCounter2 = 0
 var mutex = &sync.Mutex{}
-var mutexCount1 = &sync.Mutex{}
-var mutexCount2 = &sync.Mutex{}
-var mutexErrorCount = &sync.Mutex{}
 var start = time.Now()
+var LinkCounter int32 = 0
+var ErrCounter int32 = 0
+var CounterA int32 = 0
+var CounterB int32 = 0
+
+/*
+	FLAG PARAMETER
+*/
+var link = flag.String("url", "example.de", "webpage")
+var workers = flag.Int("con", 100, "connections")
+var logLevel = flag.Int("log", 1, "log level")
+var cpuprofile = flag.Bool("cpu", true, "cpu profile")
 
 /*
 	MAIN START
 */
 func main() {
-
-	/*
-		FLAG PARAMETER
-	*/
-	linkPtr := flag.String("url", "roller.com", "site")
-	numberOfWorkersPtr := flag.Int("con", 30, "connections")
-	logLevelPtr := flag.Int("log", 2, "0-4")
-	cpuprofilePtr := flag.String("cpu", "profile", "write cpu profile to file")
-
 	flag.Parse()
 
-	workers := *numberOfWorkersPtr
-	link := *linkPtr
-	logLevel := int32(*logLevelPtr)
-	cpuprofile := *cpuprofilePtr
+	/*
+		START URL
+	*/
+	startPage := "http://www." + *link + "/"
+	startUrl, _ := url.Parse(startPage)
+	startHost := startUrl.Host
 
 	/*
 		CPU PROFILING
 	*/
-	if cpuprofile != "" {
-		f, err := os.Create(cpuprofile)
+	if *cpuprofile == true {
+		f, err := os.Create(startHost + ".pprof")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -59,35 +58,35 @@ func main() {
 	}
 
 	/*
-		LOGGING
+		SET LOGGING FILE + LOGGING LEVEL
 	*/
-	file, err := os.OpenFile("logfile.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		Error.Println("failed open file")
+	if *logLevel != -1 {
+		file, err := os.OpenFile(startHost+".log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+			Error.Println("failed open file")
+		}
+		defer file.Close()
+		setLogLevel(int32(*logLevel), file)
+	} else {
+		setLogLevel(int32(*logLevel), nil)
 	}
-	defer file.Close()
-
-	/*
-		START URL
-	*/
-	startPage := "http://www." + link + "/"
-	startUrl, _ := url.Parse(startPage)
-	startHost := startUrl.Host
-
-	setLogLevel(logLevel, file)
-	//new_links_chan <- startPage
 
 	/*
 		CREATE WORKER
 	*/
-	for i := 1; i <= workers; i++ {
+	for i := 1; i <= *workers; i++ {
 		go worker(startHost, mutex)
-		Debug.Printf("worker %d created", i)
+		//Debug.Printf("worker %d created", i)
 	}
-	Info.Printf("Start: %s : %d workers : loglevel %d", startHost, workers, logLevel)
-	MutexAdd1()
-	counter++
-	Info.Printf("Counter: %-3d @ %s \n", counter, startPage)
+
+	/*
+		START CRAWLING LOOP
+	*/
+	Ever.Printf("START \n %s @ %d worker(s) @ loglevel %d", startHost, *workers, *logLevel)
+	AddLinkCount()
+	Info.Printf(" Counter: %d @ %s \n", GetLinkCount(), startPage)
+	visited[startPage] = true
+	AddCountA()
 	Crawl(startPage, startHost, mutex)
 
 	//keep console open
@@ -102,64 +101,56 @@ func worker(startHost string, mutex *sync.Mutex) {
 		select {
 		case link := <-new_links_chan:
 			Debug.Printf("consumed from chan: %s \n", link)
-			MutexAdd1()
+			AddCountA()
 			Crawl(link, startHost, mutex)
-			MutexDone2()
+			DoneCountB()
 		}
 	}
 }
 
 /*
-	MUTEX ADD + MUTEX DONE with check if mutexCounter == 0
+	Atomic Add Counter for logging
 */
-func MutexAdd1() {
-	mutexCount1.Lock()
-	mutexCounter1++
-	mutexCount1.Unlock()
+func AddLinkCount() {
+	atomic.AddInt32(&LinkCounter, 1)
+}
+func GetLinkCount() int32 {
+	return atomic.LoadInt32(&LinkCounter)
+}
+func AddErrCount() {
+	atomic.AddInt32(&ErrCounter, 1)
+}
+func GetErrCount() int32 {
+	return atomic.LoadInt32(&ErrCounter)
 }
 
-func MutexAdd2() {
-	mutexCount2.Lock()
-	mutexCounter2++
-	mutexCount2.Unlock()
+/*
+	Atomic Add & Decrease Counter to test if the crawler has finished
+*/
+func AddCountA() {
+	atomic.AddInt32(&CounterA, 1)
 }
-
-func MutexErrorAdd() {
-	mutexErrorCount.Lock()
-	mutexErrorCounter++
-	mutexErrorCount.Unlock()
+func AddCountB() {
+	atomic.AddInt32(&CounterB, 1)
 }
-
-func MutexDone1() {
-	mutexCount1.Lock()
-	mutexCount2.Lock()
-	mutexCounter1--
-	if mutexCounter1 == 0 && mutexCounter2 == 0 {
-		mutexCount1.Unlock()
-		mutexCount2.Unlock()
+func DoneCountA() {
+	atomic.AddInt32(&CounterA, -1)
+	if atomic.LoadInt32(&CounterA) == 0 && atomic.LoadInt32(&CounterB) == 0 {
 		Close()
 	}
-	mutexCount1.Unlock()
-	mutexCount2.Unlock()
 }
-
-func MutexDone2() {
-	mutexCount1.Lock()
-	mutexCount2.Lock()
-	mutexCounter2--
-	if mutexCounter1 == 0 && mutexCounter2 == 0 {
-		mutexCount1.Unlock()
-		mutexCount2.Unlock()
+func DoneCountB() {
+	atomic.AddInt32(&CounterB, -1)
+	if atomic.LoadInt32(&CounterA) == 0 && atomic.LoadInt32(&CounterB) == 0 {
 		Close()
 	}
-	mutexCount1.Unlock()
-	mutexCount2.Unlock()
 }
 
+/*
+	CLOSE FUNCTION WHEN FINISHED
+*/
 func Close() {
-	//close(new_links_chan)
-	Info.Println("CLOSED")
 	elapsed := time.Since(start)
-	Info.Printf("%d link(s) : %d error(s) : %f seconds\n", counter, mutexErrorCounter, elapsed.Seconds())
+	Ever.Printf("STOP \n %d link(s) : %d error(s) : %f seconds \n\n", GetLinkCount(), GetErrCount(), elapsed.Seconds())
 	os.Exit(0)
 }
