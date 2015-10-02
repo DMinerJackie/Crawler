@@ -10,6 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"net/http"
 )
 
 /*
@@ -19,10 +20,12 @@ var new_links_chan = make(chan string, 1000000)
 var visited = make(map[string]bool)
 var mutex = &sync.Mutex{}
 var start = time.Now()
+var multithread = false
 var LinkCounter int32 = 0
 var ErrCounter int32 = 0
 var CounterA int32 = 0
 var CounterB int32 = 0
+var client = &http.Client{}
 
 /*
 	FLAG PARAMETER
@@ -91,7 +94,7 @@ func main() {
 	Info.Printf(" Counter: %d @ %s \n", GetLinkCount(), startPage)
 	visited[startPage] = true
 	AddCountA()
-	Crawl(startPage, startHost, mutex)
+	Crawl(startPage, startHost)
 
 	//keep console open
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
@@ -106,7 +109,7 @@ func worker(startHost string, mutex *sync.Mutex) {
 		case link := <-new_links_chan:
 			Debug.Printf("consumed from chan: %s \n", link)
 			AddCountA()
-			Crawl(link, startHost, mutex)
+			Crawl(link, startHost)
 			DoneCountB()
 		}
 	}
@@ -134,8 +137,8 @@ func GetErrCount() int32 {
 func AddCountA() {
 	atomic.AddInt32(&CounterA, 1)
 }
-func AddCountB() {
-	atomic.AddInt32(&CounterB, 1)
+func AddCountB(x int) {
+	atomic.AddInt32(&CounterB, int32(x))
 }
 func DoneCountA() {
 	atomic.AddInt32(&CounterA, -1)
@@ -155,6 +158,6 @@ func DoneCountB() {
 */
 func Close() {
 	elapsed := time.Since(start)
-	Ever.Printf("STOP \n %d link(s) : %d error(s) : %f seconds \n\n", GetLinkCount(), GetErrCount(), elapsed.Seconds())
+	Ever.Printf("STOP \n %d link(s) : %d error(s) : %f second(s) \n\n", GetLinkCount(), GetErrCount(), elapsed.Seconds())
 	os.Exit(0)
 }
