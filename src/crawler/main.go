@@ -27,29 +27,33 @@ var CounterB int32 = 0
 /*
 	FLAG PARAMETER
 */
-var link = flag.String("url", "example.de", "webpage")
-var workers = flag.Int("con", 100, "connections")
-var logLevel = flag.Int("log", 1, "log level")
-var cpuprofile = flag.Bool("cpu", true, "cpu profile")
+var linkPtr = flag.String("url", "http://www.golem.de/", "webpage")
+var workersPtr = flag.Int("con", 500, "connections")
+var logLevelPtr = flag.Int("log", 1, "log level")
+var cpuprofilePtr = flag.Bool("cpu", true, "cpu profiling")
 
 /*
 	MAIN START
 */
 func main() {
 	flag.Parse()
+	link := *linkPtr
+	workers := *workersPtr
+	logLevel := *logLevelPtr
+	cpuprofile := *cpuprofilePtr
 
 	/*
 		START URL
 	*/
-	startPage := "http://www." + *link + "/"
+	startPage := link
 	startUrl, _ := url.Parse(startPage)
 	startHost := startUrl.Host
 
 	/*
 		CPU PROFILING
 	*/
-	if *cpuprofile == true {
-		f, err := os.Create(startHost + ".pprof")
+	if cpuprofile == true {
+		f, err := os.Create("bench.pprof")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -60,21 +64,21 @@ func main() {
 	/*
 		SET LOGGING FILE + LOGGING LEVEL
 	*/
-	if *logLevel != -1 {
+	if logLevel != -1 {
 		file, err := os.OpenFile(startHost+".log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
 			Error.Println("failed open file")
 		}
 		defer file.Close()
-		setLogLevel(int32(*logLevel), file)
+		setLogLevel(int32(logLevel), file)
 	} else {
-		setLogLevel(int32(*logLevel), nil)
+		setLogLevel(int32(logLevel), nil)
 	}
 
 	/*
 		CREATE WORKER
 	*/
-	for i := 1; i <= *workers; i++ {
+	for i := 1; i <= workers; i++ {
 		go worker(startHost, mutex)
 		//Debug.Printf("worker %d created", i)
 	}
@@ -82,7 +86,7 @@ func main() {
 	/*
 		START CRAWLING LOOP
 	*/
-	Ever.Printf("START \n %s @ %d worker(s) @ loglevel %d", startHost, *workers, *logLevel)
+	Ever.Printf("START \n %s @ %d worker(s) @ loglevel %d", startHost, workers, logLevel)
 	AddLinkCount()
 	Info.Printf(" Counter: %d @ %s \n", GetLinkCount(), startPage)
 	visited[startPage] = true
