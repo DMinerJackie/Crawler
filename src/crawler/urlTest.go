@@ -6,7 +6,7 @@ import (
 )
 
 var badChars = []string{"#", "@", ";"}
-var badFileEndings = []string{".gif", ".jpg", ".jpeg", ".svg", ".js", ".png", ".pdf", ".swf"}
+var badFileEndings = []string{".gif", ".jpg", ".jpeg", ".svg", ".png", ".ico", ".pdf", ".swf"}
 
 /*
 	Parses String to URL and parses them to absolute URLs if necessary
@@ -14,13 +14,13 @@ var badFileEndings = []string{".gif", ".jpg", ".jpeg", ".svg", ".js", ".png", ".
 func FixUrl(href, base *string) string {
 	uri, err := url.Parse(*href)
 	if err != nil {
-		MutexErrorAdd()
+		AddErrCount()
 		Error.Printf("  FixUrl() - Parsing Url failed: \n", err)
 		return ""
 	}
 	baseUrl, err := url.Parse(*base)
 	if err != nil {
-		MutexErrorAdd()
+		AddErrCount()
 		Error.Printf("  BaseURL ERROR: %s \n", err)
 		return ""
 	}
@@ -54,7 +54,7 @@ func CheckUrl(uri *string) bool {
 func CheckHost(uri, startHost *string) bool {
 	uriUrl, err := url.Parse(*uri)
 	if err != nil {
-		MutexErrorAdd()
+		AddErrCount()
 		Error.Printf("  CheckHost() - Url parsing failed: %s", err)
 		return false
 	}
