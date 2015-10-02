@@ -12,6 +12,7 @@ var badFileEndings = []string{".gif", ".jpg", ".jpeg", ".svg", ".png", ".ico", "
 	Parses String to URL and parses them to absolute URLs if necessary
 */
 func FixUrl(href, base *string) string {
+	Debug.Println("FixUrl() started: ", *href)
 	uri, err := url.Parse(*href)
 	if err != nil {
 		AddErrCount()
@@ -25,6 +26,7 @@ func FixUrl(href, base *string) string {
 		return ""
 	}
 	uri = baseUrl.ResolveReference(uri)
+	Debug.Println("Absolute URL is: ", uri)
 	return uri.String()
 }
 
@@ -39,8 +41,8 @@ func CheckUrl(uri *string) bool {
 		}
 	}
 	for _, str := range badFileEndings {
-		if strings.HasSuffix(*uri, str) {
-			Debug.Printf("  Bad File Ending %s for %s", str, *uri)
+		if strings.HasSuffix(strings.ToLower(*uri), str) {
+			Debug.Printf("  Bad File Ending %s for %s", str, uri)
 			return false
 		}
 	}
