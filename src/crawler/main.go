@@ -4,13 +4,13 @@ import (
 	"bufio"
 	"flag"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"runtime/pprof"
 	"sync"
 	"sync/atomic"
 	"time"
-	"net/http"
 )
 
 /*
@@ -20,37 +20,42 @@ var new_links_chan = make(chan string, 1000000)
 var visited = make(map[string]bool)
 var mutex = &sync.Mutex{}
 var start = time.Now()
-var multithread = false
+var multithreaded bool
 var LinkCounter int32 = 0
 var ErrCounter int32 = 0
 var CounterA int32 = 0
 var CounterB int32 = 0
 var client = &http.Client{}
+var startPage string
+var startHost string
 
 /*
 	FLAG PARAMETER
 */
-var linkPtr = flag.String("url", "http://www.golem.de/", "webpage")
-var workersPtr = flag.Int("con", 500, "connections")
-var logLevelPtr = flag.Int("log", 1, "log level")
-var cpuprofilePtr = flag.Bool("cpu", true, "cpu profiling")
+var linkPtr = flag.String("url", "http://www.example.de/", "webpage")
+var workersPtr = flag.Int("con", 1, "connections")
+var logLevelPtr = flag.Int("lvl", 1, "log level")
+var logFilePtr = flag.Bool("log", true, "log file")
+var cpuprofilePtr = flag.Bool("cpu", false, "cpu profiling")
+var multiPtr = flag.Bool("exp", false, "experimental")
 
 /*
-	MAIN START
+@@@	MAIN START @@@
 */
 func main() {
 	flag.Parse()
-	link := *linkPtr
+	startPage = *linkPtr
 	workers := *workersPtr
 	logLevel := *logLevelPtr
+	logFile := *logFilePtr
 	cpuprofile := *cpuprofilePtr
+	multithreaded = *multiPtr
 
 	/*
 		START URL
 	*/
-	startPage := link
 	startUrl, _ := url.Parse(startPage)
-	startHost := startUrl.Host
+	startHost = startUrl.Host
 
 	/*
 		CPU PROFILING
@@ -67,7 +72,7 @@ func main() {
 	/*
 		SET LOGGING FILE + LOGGING LEVEL
 	*/
-	if logLevel != -1 {
+	if logFile == true {
 		file, err := os.OpenFile(startHost+".log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
 			Error.Println("failed open file")
@@ -93,7 +98,7 @@ func main() {
 	Info.Printf(" Counter: %d @ %s \n", GetLinkCount(), startPage)
 	visited[startPage] = true
 	AddCountA()
-	Crawl(startPage, startHost)
+	Crawl(startPage)
 
 	//keep console open
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
@@ -108,7 +113,7 @@ func worker(startHost string) {
 		case link := <-new_links_chan:
 			Debug.Printf("consumed from chan: %s \n", link)
 			AddCountA()
-			Crawl(link, startHost)
+			Crawl(link)
 			DoneCountB()
 		}
 	}
@@ -147,7 +152,7 @@ func DoneCountA() {
 }
 func DoneCountB() {
 	atomic.AddInt32(&CounterB, -1)
-	if atomic.LoadInt32(&CounterA) == 0 && atomic.LoadInt32(&CounterB) == 0 {
+	if atomic.LoadInt32(&CounterB) == 0 && atomic.LoadInt32(&CounterA) == 0 {
 		Close()
 	}
 }
@@ -156,7 +161,12 @@ func DoneCountB() {
 	CLOSE FUNCTION WHEN FINISHED
 */
 func Close() {
-	elapsed := time.Since(start)
-	Ever.Printf("STOP \n %d link(s) : %d error(s) : %f second(s) \n\n", GetLinkCount(), GetErrCount(), elapsed.Seconds())
+	elapsed := time.Since(start).Seconds()
+	timeType := "second(s)"
+	if elapsed > 60 {
+		elapsed = elapsed / 60
+		timeType = "minute(s)"
+	}
+	Ever.Printf("STOP \n %d link(s) : %d error(s) : %f %s \n\n", GetLinkCount(), GetErrCount(), elapsed, timeType)
 	os.Exit(0)
 }
