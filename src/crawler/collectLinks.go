@@ -19,7 +19,7 @@ func collectLinks(link *string, httpBody io.Reader) []string {
 	for {
 		tokenType := page.Next()
 		if tokenType == html.ErrorToken {
-			Warning.Printf("HTML Tokenizer failed on %s : %s", *link, tokenType)
+			//Warning.Printf("HTML Tokenizer failed on %s : %s", *link, tokenType)
 			return links
 		}
 		token := page.Token()
