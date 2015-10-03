@@ -9,6 +9,7 @@ import (
 )
 
 var (
+	Pure    *log.Logger
 	Ever    *log.Logger
 	Info    *log.Logger
 	Warning *log.Logger
@@ -18,48 +19,47 @@ var (
 
 // turnOnLogging configures the logging writers.
 func setLogLevel(logLevel int32, fileHandle io.Writer) {
+	pureHandle := ioutil.Discard
 	everHandle := ioutil.Discard
-	everHandle = os.Stdout
 	infoHandle := ioutil.Discard
 	warnHandle := ioutil.Discard
 	errorHandle := ioutil.Discard
 	debugHandle := ioutil.Discard
-	
 
 	if logLevel == 1 {
+		everHandle = os.Stdout
 		infoHandle = os.Stdout
+		warnHandle = os.Stdout
 		errorHandle = os.Stderr
 	}
 
 	if logLevel == 2 {
-		infoHandle = os.Stdout
+		everHandle = os.Stdout
 		warnHandle = os.Stdout
 		errorHandle = os.Stderr
 	}
 
 	if logLevel == 3 {
-		infoHandle = os.Stdout
-		warnHandle = os.Stdout
-		errorHandle = os.Stderr
-	}
-
-	if logLevel == 4 {
-		warnHandle = os.Stdout
-		errorHandle = os.Stderr
-	}
-
-	if logLevel == 5 {
-		errorHandle = os.Stderr
-	}
-
-	if logLevel == 6 {
+		everHandle = os.Stdout
 		infoHandle = os.Stdout
 		warnHandle = os.Stdout
 		errorHandle = os.Stderr
 		debugHandle = os.Stdout
 	}
 
+	if logLevel == 4 {
+		everHandle = os.Stdout
+		pureHandle = os.Stdout
+	}
+
+	if logLevel == 5 {
+		pureHandle = os.Stdout
+	}
+
 	if fileHandle != nil && logLevel != -1 {
+		if pureHandle == os.Stdout {
+			pureHandle = io.MultiWriter(fileHandle, pureHandle)
+		}
 		if everHandle == os.Stdout {
 			everHandle = io.MultiWriter(fileHandle, everHandle)
 		}
@@ -81,6 +81,7 @@ func setLogLevel(logLevel int32, fileHandle io.Writer) {
 		}
 	}
 
+	Pure = log.New(pureHandle, "", 0)
 	Ever = log.New(everHandle, "LOG: ", log.Ldate|log.Ltime)
 	Debug = log.New(debugHandle, "DEBUG: ", log.Ldate|log.Ltime)
 	Info = log.New(infoHandle, "INFO: ", log.Ldate|log.Ltime)
