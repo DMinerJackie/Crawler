@@ -54,7 +54,11 @@ func main() {
 	/*
 		START URL
 	*/
-	startUrl, _ := url.Parse(startPage)
+	startUrl, err := url.Parse(startPage)
+	if err != nil {
+		Error.Println(err)
+		os.Exit(1)
+	}
 	startHost = startUrl.Host
 
 	/*
