@@ -17,6 +17,8 @@ import (
 	GLOBAL PARAMETER
 */
 var new_links_chan = make(chan string, 1000000)
+var phantom_chan = make(chan string, 1000000)
+var throttle = time.Tick(100 * time.Millisecond)
 var visited = make(map[string]bool)
 var mutex = &sync.Mutex{}
 var start = time.Now()
@@ -28,14 +30,19 @@ var CounterB int32 = 0
 var client = &http.Client{}
 var startPage string
 var startHost string
+var startHostAdd string
+var isPhantom bool
+
 
 /*
 	FLAG PARAMETER
 */
-var linkPtr = flag.String("url", "http://www.example.de/", "webpage")
-var workersPtr = flag.Int("con", 1, "connections")
+var linkPtr = flag.String("url", "http://www.vorwerk.de/", "homepage")
+var testlinkPtr = flag.String("filter", "vorwerk.de", "filter for specific subdomains or /de/de/ sites")
+var workersPtr = flag.Int("con", 50, "connections")
 var logLevelPtr = flag.Int("lvl", 1, "log level")
 var logFilePtr = flag.Bool("log", true, "log file")
+var phantomPtr = flag.Bool("pjs", false, "PhantomJS web server connection 127.0.0.1:8080")
 var cpuprofilePtr = flag.Bool("cpu", false, "cpu profiling")
 var multiPtr = flag.Bool("exp", false, "experimental")
 
@@ -45,9 +52,11 @@ var multiPtr = flag.Bool("exp", false, "experimental")
 func main() {
 	flag.Parse()
 	startPage = *linkPtr
+	startHostAdd = *testlinkPtr
 	workers := *workersPtr
 	logLevel := *logLevelPtr
 	logFile := *logFilePtr
+	isPhantom = *phantomPtr
 	cpuprofile := *cpuprofilePtr
 	multithreaded = *multiPtr
 
@@ -77,9 +86,9 @@ func main() {
 		SET LOGGING FILE + LOGGING LEVEL
 	*/
 	if logFile == true {
-		file, err := os.OpenFile(startHost+".log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		file, err := os.OpenFile(startUrl.Host+".log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
-			Error.Println("failed open file")
+			Error.Println("ERROR \t failed to open file")
 		}
 		defer file.Close()
 		setLogLevel(int32(logLevel), file)
@@ -93,15 +102,22 @@ func main() {
 	for i := 1; i <= workers; i++ {
 		go worker(startHost)
 	}
+	
+	/*
+		CREATE PHANTOM WORKER
+	*/
+	for i := 1; i <= 10; i++ {
+		go phantomWorker()
+	}
 
 	/*
 		START CRAWLING LOOP
 	*/
 	Ever.Printf("START \n %s @ %d worker(s) @ loglevel %d", startHost, workers, logLevel)
 	AddLinkCount()
-	Info.Printf(" Counter: %d @ %s \n", GetLinkCount(), startPage)
+	Info.Printf("INFO \t Counter: %d @ %s \n", GetLinkCount(), startPage)
 	visited[startPage] = true
-	AddCountA()
+	AddCountA(1)
 	Crawl(startPage)
 
 	//keep console open
@@ -115,10 +131,23 @@ func worker(startHost string) {
 	for {
 		select {
 		case link := <-new_links_chan:
-			Debug.Printf("consumed from chan: %s \n", link)
-			AddCountA()
+			Debug.Printf("DEBUG \t consumed from chan: %s \n", link)
+			AddCountA(1)
 			Crawl(link)
 			DoneCountB()
+		}
+	}
+}
+
+/*
+	PHANTOM FUNCTION
+*/
+func phantomWorker() {
+	for {
+		select {
+		case link := <-phantom_chan:
+		<- throttle
+			Phantom(link)
 		}
 	}
 }
@@ -142,8 +171,8 @@ func GetErrCount() int32 {
 /*
 	Atomic Add & Decrease Counter to test if the crawler has finished
 */
-func AddCountA() {
-	atomic.AddInt32(&CounterA, 1)
+func AddCountA(x int) {
+	atomic.AddInt32(&CounterA, int32(x))
 }
 func AddCountB(x int) {
 	atomic.AddInt32(&CounterB, int32(x))
@@ -171,6 +200,6 @@ func Close() {
 		elapsed = elapsed / 60
 		timeType = "minute(s)"
 	}
-	Ever.Printf("STOP \n %d link(s) : %d error(s) : %f %s \n\n", GetLinkCount(), GetErrCount(), elapsed, timeType)
+	Ever.Printf("STOP \n link(s): %-6d error(s): %-6d %s: %-6f \n\n", GetLinkCount(), GetErrCount(), timeType, elapsed)
 	os.Exit(0)
 }

@@ -53,7 +53,7 @@ func setLogLevel(logLevel int32, fileHandle io.Writer) {
 	}
 
 	if logLevel == 5 {
-		pureHandle = os.Stdout
+		everHandle = os.Stdout
 	}
 
 	if fileHandle != nil && logLevel != -1 {
@@ -82,11 +82,11 @@ func setLogLevel(logLevel int32, fileHandle io.Writer) {
 	}
 
 	Pure = log.New(pureHandle, "", 0)
-	Ever = log.New(everHandle, "LOG: ", log.Ldate|log.Ltime)
-	Debug = log.New(debugHandle, "DEBUG: ", log.Ldate|log.Ltime)
-	Info = log.New(infoHandle, "INFO: ", log.Ldate|log.Ltime)
+	Ever = log.New(everHandle, "", log.Ldate|log.Ltime)
+	Debug = log.New(debugHandle, "", log.Ldate|log.Ltime)
+	Info = log.New(infoHandle, "", log.Ldate|log.Ltime)
 	Warning = log.New(warnHandle, "WARNING: ", log.Ldate|log.Ltime)
-	Error = log.New(errorHandle, "ERROR: ", log.Ldate|log.Ltime)
+	Error = log.New(errorHandle, "", log.Ldate|log.Ltime)
 
 	atomic.StoreInt32(&logLevel, logLevel)
 }

@@ -10,21 +10,21 @@ func Crawl(link string) {
 
 	req, err := http.NewRequest("GET", link, nil)
 	if err != nil {
-		Error.Printf("  Connection Error for %s : %s \n", link, err)
+		Error.Printf("ERROR \t Connection Error for %s : %s \n", link, err)
 		return
 	}
 	//	UNIQUE USER AGENT, NO 'BOT'
 	req.Header.Set("User-Agent", "Ich teste hier nur meinen multithreaded Web-O-Nator. Einmal gemischte Tüte ohne Lakritz bitte")
 	resp, err := client.Do(req)
 	if err != nil {
-		Error.Printf("  Connection Error for %s : %s \n", link, err)
+		Error.Printf("ERROR \t Connection Error for %s : %s \n", link, err)
 		return
 	}
 	defer resp.Body.Close()
 
-	links := collectLinks(&link, resp.Body)
-	Debug.Printf("%s contains: %s \n", link, links)
-	Debug.Printf("  Found %d link(s) on %s \n", len(links), link)
+	links := collectLinks(resp.Body)
+	Debug.Printf("DEBUG \t %s contains: %s \n", link, links)
+	Debug.Printf("DEBUG \t Found %d link(s) on %s \n", len(links), link)
 	/*
 		BUGGY FOR WHATEVER FUCKING REASON
 	*/
@@ -39,16 +39,19 @@ func Crawl(link string) {
 			absoluteUrl := FixUrl(&foundLink, &link)
 			if absoluteUrl != "" {
 				if CheckUrl(&absoluteUrl) && CheckHost(&absoluteUrl) {
-					Debug.Printf("     *** Tests passed: %s \n", absoluteUrl)
+					Debug.Printf("DEBUG \t Tests passed: %s \n", absoluteUrl)
 					mutex.Lock()
 					if visited[absoluteUrl] == false {
 						visited[absoluteUrl] = true
 						AddLinkCount()
-						Info.Printf(" Counter: %d @ %s \n", GetLinkCount(), absoluteUrl)
-						Pure.Println(absoluteUrl)
+						Info.Printf("INFO\t%d @ %s \n", GetLinkCount(), absoluteUrl)
+						//Pure.Println(absoluteUrl)
 						mutex.Unlock()
 						Debug.Printf("added to channel: %s \n", absoluteUrl)
 						AddCountB(1)
+						if isPhantom {
+							phantom_chan <- absoluteUrl
+						}
 						new_links_chan <- absoluteUrl
 					} else {
 						mutex.Unlock()
@@ -76,10 +79,13 @@ func test(link, foundLink string) {
 			if visited[absoluteUrl] == false {
 				visited[absoluteUrl] = true
 				AddLinkCount()
-				Info.Printf(" Counter: %d @ %s \n", GetLinkCount(), absoluteUrl)
+				//Info.Printf(" %d @ %s \n", GetLinkCount(), absoluteUrl)
 				mutex.Unlock()
 				Debug.Printf("added to channel: %s \n", absoluteUrl)
 				AddCountB(1)
+				if isPhantom {
+					phantom_chan <- absoluteUrl
+				}
 				new_links_chan <- absoluteUrl
 			} else {
 				mutex.Unlock()

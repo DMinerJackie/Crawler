@@ -59,10 +59,12 @@ func CheckHost(uri *string) bool {
 		return false
 	}
 	//fmt.Printf("Site Host: %s ## START HOST: %s \n", uriUrl.Host, *startHost)
-	if uriUrl.Host == startHost {
+	//if uriUrl.Host == startHost {
+	//if strings.HasPrefix(strings.ToLower(*uri), startPage) {
+	if strings.Contains(*uri, startHostAdd) {
 		return true
 	} else {
-		Debug.Printf("  Bad Host: %s for %s \n", uriUrl.Host, uriUrl)
+		Debug.Printf("  Bad Host: %s instead of %s for %s \n", uriUrl.Host, startHost, uriUrl)
 		return false
 	}
 
