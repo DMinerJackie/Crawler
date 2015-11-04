@@ -6,8 +6,6 @@ import (
 )
 
 var maxRetries = 4
-var resp *http.Response = nil
-var err error
 
 func Crawl(link string, workerID int) {
 	defer DoneCountA()
@@ -28,7 +26,9 @@ func Crawl(link string, workerID int) {
 	//		AddErrCount()
 	//		return
 	//	}
-
+	
+	var resp *http.Response = nil
+	//r err error
 	// Retry requests if err != nil, sleep between each retry 'i' seconds
 	for i := 0; i <= maxRetries; i++ {
 		resp, err = client.Do(req)
