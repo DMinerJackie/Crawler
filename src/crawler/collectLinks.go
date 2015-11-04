@@ -3,7 +3,7 @@
 package main
 
 import (
-	"code.google.com/p/go.net/html"
+	"golang.org/x/net/html"
 	"io"
 )
 
@@ -13,8 +13,10 @@ import (
 
    It does not close the reader passed to it.
 */
-func collectLinks(httpBody io.Reader) []string {
-	Debug.Println("start with collectLinks()")
+func collectLinks(link string, httpBody io.Reader) []string {
+	mutex.Lock()
+	Info.Printf("DEBUG \t start with collectLinks() @ %s", link)
+	mutex.Unlock()
 	links := make([]string, 0)
 	page := html.NewTokenizer(httpBody)
 	for {

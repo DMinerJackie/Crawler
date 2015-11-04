@@ -33,13 +33,12 @@ var startHost string
 var startHostAdd string
 var isPhantom bool
 
-
 /*
 	FLAG PARAMETER
 */
-var linkPtr = flag.String("url", "http://www.vorwerk.de/", "homepage")
-var testlinkPtr = flag.String("filter", "vorwerk.de", "filter for specific subdomains or /de/de/ sites")
-var workersPtr = flag.Int("con", 50, "connections")
+var linkPtr = flag.String("url", "http://www.baldur-garten.de/kategorie/Gartenzubehoer/Gartenzubehoer/detail.html?filter=Standort&option=Halbschatten", "homepage")
+var testlinkPtr = flag.String("filter", "", "filter for specific subdomains or /de/de/ sites")
+var workersPtr = flag.Int("con", 10, "connections")
 var logLevelPtr = flag.Int("lvl", 1, "log level")
 var logFilePtr = flag.Bool("log", true, "log file")
 var phantomPtr = flag.Bool("pjs", false, "PhantomJS web server connection 127.0.0.1:8080")
@@ -69,6 +68,10 @@ func main() {
 		os.Exit(1)
 	}
 	startHost = startUrl.Host
+	
+	if startHostAdd == "" {
+		startHostAdd = startHost
+	}
 
 	/*
 		CPU PROFILING
@@ -100,9 +103,9 @@ func main() {
 		CREATE WORKER
 	*/
 	for i := 1; i <= workers; i++ {
-		go worker(startHost)
+		go worker(i)
 	}
-	
+
 	/*
 		CREATE PHANTOM WORKER
 	*/
@@ -115,10 +118,10 @@ func main() {
 	*/
 	Ever.Printf("START \n %s @ %d worker(s) @ loglevel %d", startHost, workers, logLevel)
 	AddLinkCount()
-	Info.Printf("INFO \t Counter: %d @ %s \n", GetLinkCount(), startPage)
+	Info.Printf("INFO \t %d @ %s \n", GetLinkCount(), startPage)
 	visited[startPage] = true
 	AddCountA(1)
-	Crawl(startPage)
+	Crawl(startPage, 0)
 
 	//keep console open
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
@@ -127,13 +130,13 @@ func main() {
 /*
 	WORKER FUNCTION
 */
-func worker(startHost string) {
+func worker(i int) {
 	for {
 		select {
 		case link := <-new_links_chan:
 			Debug.Printf("DEBUG \t consumed from chan: %s \n", link)
 			AddCountA(1)
-			Crawl(link)
+			Crawl(link, i)
 			DoneCountB()
 		}
 	}
@@ -146,7 +149,7 @@ func phantomWorker() {
 	for {
 		select {
 		case link := <-phantom_chan:
-		<- throttle
+			<-throttle
 			Phantom(link)
 		}
 	}

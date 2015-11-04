@@ -57,7 +57,7 @@ func setLogLevel(logLevel int32, fileHandle io.Writer) {
 	}
 
 	if fileHandle != nil && logLevel != -1 {
-		if pureHandle == os.Stdout {
+		if pureHandle == ioutil.Discard {
 			pureHandle = io.MultiWriter(fileHandle, pureHandle)
 		}
 		if everHandle == os.Stdout {

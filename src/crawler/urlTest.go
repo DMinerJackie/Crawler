@@ -6,7 +6,7 @@ import (
 )
 
 var badChars = []string{"#", "@", ";"}
-var badFileEndings = []string{".gif", ".jpg", ".jpeg", ".svg", ".png", ".ico", ".pdf", ".swf"}
+var badFileEndings = []string{".gif", ".jpg", ".jpeg", ".svg", ".png", ".ico", ".pdf", ".swf", ".tif",}
 
 /*
 	Parses String to URL and parses them to absolute URLs if necessary
@@ -61,10 +61,10 @@ func CheckHost(uri *string) bool {
 	//fmt.Printf("Site Host: %s ## START HOST: %s \n", uriUrl.Host, *startHost)
 	//if uriUrl.Host == startHost {
 	//if strings.HasPrefix(strings.ToLower(*uri), startPage) {
-	if strings.Contains(*uri, startHostAdd) {
+	if strings.Contains(uriUrl.Host, startHostAdd) {
 		return true
 	} else {
-		Debug.Printf("  Bad Host: %s instead of %s for %s \n", uriUrl.Host, startHost, uriUrl)
+		Debug.Printf("  CheckHost() - Bad Host: %s instead of %s for %s \n", uriUrl.Host, startHost, uriUrl)
 		return false
 	}
 
